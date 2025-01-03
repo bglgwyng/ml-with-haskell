@@ -1,0 +1,41 @@
+cabal-version:       3.0
+name:                ml-with-haskell
+version:             0.0.0.0
+synopsis:            See README for more info
+description:         See README for more info
+license:             MIT
+license-file:        LICENSE
+author:              The Hasktorch Team
+maintainer:          hasktorch@gmail.com
+copyright:           2020 The Hasktorch Team
+category:            Tensors, Machine Learning, AI
+build-type:          Simple
+extra-doc-files:     README.md
+                   , CHANGELOG.md
+tested-with:         GHC == 9.6.5
+
+common base
+  ghc-options: -Wall -Wextra -Wno-unrecognised-pragmas -Wno-orphans
+  default-language: GHC2021
+  default-extensions:
+    DataKinds
+  build-depends:
+      base >= 4.18 && < 5
+    , hasktorch >= 0.2 && < 0.3
+    , mtl
+
+common binary-base
+  import: base
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends: ml-with-haskell
+
+library
+  import: base
+  exposed-modules:
+    Torch.Typed.Extra
+  hs-source-dirs: lib
+
+executable linear-regression1
+  import: binary-base
+  main-is: LinearRegression1.hs
+  hs-source-dirs: examples
