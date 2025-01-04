@@ -31,7 +31,7 @@ main = do
       let predictions = b `T.addScalar` (w `T.mulScalar` xs)
       let errs = predictions - ys
 
-      let w' = toFloat $ T.meanAll ((w `T.mulScalar` xs - ys `T.addScalar'` b) * xs) `T.mulScalar'` (2 :: Float)
+      let w' = toFloat $ T.meanAll ((w `T.mulScalar` xs `T.addScalar'` b - ys ) * xs) `T.mulScalar'` (2 :: Float)
       let b' = toFloat $ T.meanAll errs
 
       let loss = toFloat $ T.divScalar n $ T.sumAll $ T.powScalar (2 :: Float) errs
