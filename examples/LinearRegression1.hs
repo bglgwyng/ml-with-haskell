@@ -36,6 +36,7 @@ main = do
 
       let loss = toFloat $ T.divScalar n $ T.sumAll $ T.powScalar (2 :: Float) errs
       put (w - w' * learningRate, b - b' * learningRate)
+
       liftIO $ printf "epoch: %4d, loss: %0.5f\n" (i :: Int) loss
 
   liftIO $ printf "wLearned: %f, bLearned: %f\n" wLearned bLearned
@@ -50,7 +51,7 @@ generate ::
 generate w b e = do
   xs :: T.Tensor device T.Float '[n] <- T.rand
   errs :: T.Tensor device T.Float '[n] <- T.mulScalar e . T.subScalar (1 :: Float) . T.mulScalar (2 :: Float) <$> T.rand
-  print errs
+
   let ys = T.addScalar b (T.mulScalar w xs) + errs
 
   pure (xs, ys)
