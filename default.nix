@@ -1,12 +1,12 @@
 ############################################################################
-# hasktorch-skeleton Nix build
+# ml-with-haskell Nix build
 ############################################################################
 
 { system ? builtins.currentSystem
 , crossSystem ? null
   # allows to customize ghc and profiling (see ./nix/haskell.nix):
 , config ? { }
-  # allows to override dependencies of the hasktorch-skeleton project without modifications
+  # allows to override dependencies of the ml-with-haskell project without modifications
 , sourcesOverride ? { }
   # If true, activates CUDA support
 , cudaSupport ? false
@@ -34,11 +34,11 @@ let
   self = {
     inherit haskellPackages;
 
-    inherit (haskellPackages.hasktorch-skeleton.identifier) version;
+    inherit (haskellPackages.ml-with-haskell.identifier) version;
 
     # Grab library components of this package.
     inherit (libs)
-      hasktorch-skeleton
+      ml-with-haskell
       ;
 
     # `tests` are the test suites which have been built.
