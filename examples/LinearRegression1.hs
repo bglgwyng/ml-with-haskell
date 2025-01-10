@@ -1,3 +1,4 @@
+import CommonArgs
 import Control.Monad.State
 import Data.Foldable
 import GHC.TypeNats
@@ -13,16 +14,14 @@ type N = 100
 
 main :: IO ()
 main = do
-  manual_seed_L 42
+  CommonArgs{learningRate, epoch, seed} <- getArgs
+  mapM_ manual_seed_L seed
 
   let n = natValI @N
 
   let (wTrue, bTrue) = (5, -2)
   printf "wTrue: %f, bTrue: %f\n" wTrue bTrue
   (xs, ys) <- generate @N @Device wTrue bTrue 0.1
-
-  let epoch = 100
-  let learningRate = 0.5
 
   w0 <- toFloat <$> T.rand @_ @_ @Device
   b0 <- toFloat <$> T.rand @_ @_ @Device
