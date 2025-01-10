@@ -23,6 +23,7 @@ common base
       base >= 4.18 && < 5
     , hasktorch >= 0.2 && < 0.3
     , mtl
+    , libtorch-ffi
 
 common binary-base
   import: base
@@ -38,4 +39,9 @@ library
 executable linear-regression1
   import: binary-base
   main-is: LinearRegression1.hs
+  hs-source-dirs: examples
+
+executable linear-regression2
+  import: binary-base
+  main-is: LinearRegression2.hs
   hs-source-dirs: examples

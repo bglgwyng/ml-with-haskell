@@ -2,7 +2,7 @@ import Control.Monad.State
 import Data.Foldable
 import GHC.TypeNats
 import Text.Printf
-import Torch.Internal.Managed.Type.Context (manual_seed_L)
+import Torch.Internal.Managed.Type.Context
 import Torch.Typed hiding (Device)
 import Torch.Typed qualified as T hiding (Device)
 import Torch.Typed.Extra qualified as T
@@ -15,8 +15,6 @@ main :: IO ()
 main = do
   manual_seed_L 42
 
-  let n = natValI @N
-
   let (wTrue, bTrue) = (5, -2)
   printf "wTrue: %f, bTrue: %f\n" wTrue bTrue
   (xs, ys) <- generate @N @Device wTrue bTrue 0.1
@@ -24,25 +22,32 @@ main = do
   let epoch = 100
   let learningRate = 0.5
 
-  w0 <- toFloat <$> T.rand @_ @_ @Device
-  b0 <- toFloat <$> T.rand @_ @_ @Device
+  w0 :: Parameter Device 'Float '[] <- makeIndependent =<< T.rand
+  b0 :: Parameter Device 'Float '[] <- makeIndependent =<< T.rand
 
   (wLearned, bLearned) <- flip execStateT (w0, b0) $ do
     for_ [1 .. epoch] $ \i -> do
-      (w, b) <- get
+      (p_w, p_b) <- get
+      let w = toDependent p_w
+      let b = toDependent p_b
 
-      let predictions = b `T.addScalar` (w `T.mulScalar` xs)
+      let predictions = (T.expand' w * xs) + T.expand' b
+
       let errs = predictions - ys
+      let loss = T.meanAll $ T.powScalar (2 :: Float) errs
 
-      let w' = toFloat $ T.meanAll ((w `T.mulScalar` xs `T.addScalar'` b - ys) * xs) `T.mulScalar'` (2 :: Float)
-      let b' = toFloat $ T.mulScalar (2 :: Float) $ T.meanAll errs
+      liftIO $ printf "loss: %f %f\n" (toFloat loss) (toFloat $ T.sumAll errs)
 
-      let loss = toFloat $ T.divScalar n $ T.sumAll $ T.powScalar (2 :: Float) errs
-      put (w - w' * learningRate, b - b' * learningRate)
+      let w' = grad loss p_w
+      let b' = grad loss p_b
 
-      liftIO $ printf "epoch: %4d, loss: %0.5f\n" (i :: Int) loss
+      p_w <- liftIO $ makeIndependent $ w - w' * learningRate
+      p_b <- liftIO $ makeIndependent $ b - b' * learningRate
+      put (p_w, p_b)
 
-  liftIO $ printf "wLearned: %f, bLearned: %f\n" wLearned bLearned
+      liftIO $ printf "epoch: %4d, loss: %0.5f\n" (i :: Int) (toFloat loss)
+
+  liftIO $ printf "wLearned: %f, bLearned: %f\n" (toFloat (toDependent wLearned)) (toFloat (toDependent bLearned))
 
 generate ::
   forall n device.
