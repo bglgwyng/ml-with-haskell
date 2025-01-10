@@ -22,7 +22,7 @@ main = do
   (xs, ys) <- generate @N @Device wTrue bTrue 0.1
 
   let epoch = 100
-  let learningRate = 1
+  let learningRate = 0.5
 
   w0 <- toFloat <$> T.rand @_ @_ @Device
   b0 <- toFloat <$> T.rand @_ @_ @Device
@@ -34,8 +34,8 @@ main = do
       let predictions = b `T.addScalar` (w `T.mulScalar` xs)
       let errs = predictions - ys
 
-      let w' = toFloat $ T.meanAll ((w `T.mulScalar` xs `T.addScalar'` b - ys ) * xs) `T.mulScalar'` (2 :: Float)
-      let b' = toFloat $ T.meanAll errs
+      let w' = toFloat $ T.meanAll ((w `T.mulScalar` xs `T.addScalar'` b - ys) * xs) `T.mulScalar'` (2 :: Float)
+      let b' = toFloat $ T.mulScalar (2 :: Float) $ T.meanAll errs
 
       let loss = toFloat $ T.divScalar n $ T.sumAll $ T.powScalar (2 :: Float) errs
       put (w - w' * learningRate, b - b' * learningRate)
