@@ -38,3 +38,14 @@ subScalar' ::
   a ->
   Tensor device dtype shape
 subScalar' = flip subScalar
+
+expand' ::
+  forall
+    (shape' :: [Nat])
+    (shape :: [Nat])
+    (dtype :: DType)
+    (device :: (DeviceType, Nat)).
+  (KnownShape shape', shape' ~ Broadcast shape shape') =>
+  Tensor device dtype shape ->
+  Tensor device dtype shape'
+expand' = expand False
