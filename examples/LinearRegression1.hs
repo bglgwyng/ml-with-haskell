@@ -2,6 +2,7 @@ import Control.Monad.State
 import Data.Foldable
 import GHC.TypeNats
 import Text.Printf
+import Torch.Internal.Managed.Type.Context (manual_seed_L)
 import Torch.Typed hiding (Device)
 import Torch.Typed qualified as T hiding (Device)
 import Torch.Typed.Extra qualified as T
@@ -12,6 +13,8 @@ type N = 100
 
 main :: IO ()
 main = do
+  manual_seed_L 42
+
   let n = natValI @N
 
   let (wTrue, bTrue) = (5, -2)
