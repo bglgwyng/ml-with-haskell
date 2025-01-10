@@ -1,3 +1,4 @@
+import CommonArgs
 import Control.Monad.State
 import Data.Foldable
 import GHC.TypeNats
@@ -13,14 +14,12 @@ type N = 100
 
 main :: IO ()
 main = do
-  manual_seed_L 42
+  CommonArgs{learningRate, epoch, seed} <- getArgs
+  mapM_ manual_seed_L seed
 
   let (wTrue, bTrue) = (5, -2)
   printf "wTrue: %f, bTrue: %f\n" wTrue bTrue
   (xs, ys) <- generate @N @Device wTrue bTrue 0.1
-
-  let epoch = 100
-  let learningRate = 0.5
 
   w0 :: Parameter Device 'Float '[] <- makeIndependent =<< T.rand
   b0 :: Parameter Device 'Float '[] <- makeIndependent =<< T.rand
@@ -41,8 +40,8 @@ main = do
       let w' = grad loss p_w
       let b' = grad loss p_b
 
-      p_w <- liftIO $ makeIndependent $ w - w' * learningRate
-      p_b <- liftIO $ makeIndependent $ b - b' * learningRate
+      p_w <- liftIO $ makeIndependent $ w - w' `T.mulScalar'` learningRate
+      p_b <- liftIO $ makeIndependent $ b - b' `T.mulScalar'` learningRate
       put (p_w, p_b)
 
       liftIO $ printf "epoch: %4d, loss: %0.5f\n" (i :: Int) (toFloat loss)

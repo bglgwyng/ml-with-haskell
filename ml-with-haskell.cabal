@@ -24,6 +24,7 @@ common base
     , hasktorch >= 0.2 && < 0.3
     , mtl
     , libtorch-ffi
+    , optparse-applicative
 
 common binary-base
   import: base
@@ -34,6 +35,7 @@ library
   import: base
   exposed-modules:
     Torch.Typed.Extra
+    CommonArgs
   hs-source-dirs: lib
 
 executable linear-regression1
