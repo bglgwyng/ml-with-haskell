@@ -38,12 +38,12 @@ library
     CommonArgs
   hs-source-dirs: lib
 
-executable linear-regression1
+executable linear-regression-basic
   import: binary-base
-  main-is: LinearRegression1.hs
+  main-is: linear-regression-basic.hs
   hs-source-dirs: examples
 
-executable linear-regression2
+executable linear-regression-autograd
   import: binary-base
-  main-is: LinearRegression2.hs
+  main-is: linear-regression-autograd.hs
   hs-source-dirs: examples
