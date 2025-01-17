@@ -19,6 +19,7 @@ common base
   default-language: GHC2021
   default-extensions:
     DataKinds
+    OverloadedRecordDot
   build-depends:
       base >= 4.18 && < 5
     , hasktorch >= 0.2 && < 0.3
@@ -47,3 +48,9 @@ executable linear-regression-autograd
   import: binary-base
   main-is: linear-regression-autograd.hs
   hs-source-dirs: examples
+
+executable linear-regression-optimizer
+  import: binary-base
+  main-is: linear-regression-optimizer.hs
+  hs-source-dirs: examples
+
