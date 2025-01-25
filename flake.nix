@@ -31,8 +31,9 @@
         }:
         let
           ghc = "ghc965";
+          haskellPackages = pkgs.haskell.packages.${ghc};
         in
-        {
+        rec {
           _module.args = {
             pkgs = import nixpkgs {
               inherit system;
@@ -44,12 +45,13 @@
             };
           };
           packages.default =
-            pkgs.haskell.packages.${ghc}.callCabal2nix "example" ./. { };
-          devShells.default = pkgs.haskell.packages.${ghc}.shellFor {
-            packages = ps: [
-              (ps.callCabal2nix "example" ./. { })
+            haskellPackages.callCabal2nix "ml-with-haskell" ./. { };
+          devShells.default = haskellPackages.shellFor {
+            packages = ps: [ packages.default ];
+            nativeBuildInputs = with pkgs; [
+              cabal-install
+              haskell-language-server
             ];
-            nativeBuildInputs = with pkgs; [ cabal-install stylish-haskell haskell-language-server ];
             withHoogle = true;
           };
         };
