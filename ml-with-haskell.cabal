@@ -20,13 +20,20 @@ common base
   default-extensions:
     DataKinds
     OverloadedRecordDot
+    DuplicateRecordFields
+    RecordWildCards
+    NoStarIsType
+    LambdaCase
   build-depends:
       base >= 4.18 && < 5
     , hasktorch >= 0.2 && < 0.3
     , mtl
     , libtorch-ffi
     , optparse-applicative
-
+    , vector
+    , random
+    , containers
+    
 common binary-base
   import: base
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
@@ -35,6 +42,7 @@ common binary-base
 library
   import: base
   exposed-modules:
+    RL.Environments.FrozenLake
     Torch.Typed.Extra
     CommonArgs
   hs-source-dirs: lib
@@ -53,4 +61,22 @@ executable linear-regression-optimizer
   import: binary-base
   main-is: linear-regression-optimizer.hs
   hs-source-dirs: examples
+
+executable frozen-lake-rl
+  import: binary-base
+  main-is: frozen-lake-rl.hs
+  hs-source-dirs: examples
+
+test-suite spec
+  import: base
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs: tests
+  build-tool-depends:
+  build-depends:
+    , ml-with-haskell
+    , hspec
+    , hspec-discover
+  other-modules:
+    RL.Environments.FrozenLakeSpec
 
