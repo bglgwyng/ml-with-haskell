@@ -1,33 +1,16 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UndecidableInstances #-}
---
-{-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-missing-fields #-}
 
 import CommonArgs
--- import Torch.Typed
-
 import Control.Arrow ((&&&), (>>>))
 import Control.Lens
-import Data.Bifunctor (Bifunctor (bimap))
 import Data.Finite (Finite)
 import Data.Foldable (for_)
-import Data.Function ((&))
 import Data.Functor
 import Data.Maybe (fromJust)
 import GHC.Generics
 import GHC.IsList
 import GHC.TypeLits
 import RL.Environment
-import RL.Environments.FrozenLake
 import RL.Environments.FrozenLake qualified as FL
 import System.Random.Stateful hiding (Finite)
 import Torch qualified as UT
@@ -58,7 +41,7 @@ main = do
 
   putStrLn "Training..."
   (model, _, _) <- foldLoop (model0, optim0, 0) epoch $ \(model, optim, winCount) i -> do
-    episode <- runAgent (WithMaxStep {env = state0, maxStep = maxStepCount}) $ chooseAction model . snd
+    episode <- runAgent (WithMaxStep {env = state0, maxStep = maxStepCount}) (pure . runIdentity) $ chooseAction model . snd
 
     let (rewards, logProbs) = unzip $ (\(_, (_, obs), logProb) -> (if obs == FL.goalPosition then 1 else 0 :: Float, logProb)) <$> episode
         logProbs' = UT.stack (UT.Dim 0) (T.toDynamic <$> logProbs)
@@ -80,7 +63,7 @@ main = do
 
   putStrLn "Testing..."
   for_ [0 .. 10] $ \i -> do
-    episode <- runAgent (WithMaxStep {env = state0, maxStep = maxStepCount}) $ chooseAction model . snd
+    episode <- runAgent (WithMaxStep {env = state0, maxStep = maxStepCount}) (pure . runIdentity) $ chooseAction model . snd
     let (_, (_, lastPos), _) = last episode
     putStrLn $ "Episode " <> show i <> ": " <> if lastPos == FL.goalPosition then "Success" else "Fail" <> " " <> show (episode ^.. each . _1)
 

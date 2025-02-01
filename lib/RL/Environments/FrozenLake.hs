@@ -3,6 +3,7 @@ module RL.Environments.FrozenLake (FrozenLake (..), Tile (..), Action (..), move
 import Control.Monad (join)
 import Control.Monad.Identity (Identity)
 import Data.Finite
+import Data.Functor.Identity
 import Data.Graph
 import Data.Proxy
 import Data.Vector.Sized (Vector)
@@ -115,6 +116,7 @@ goalPosition = (maxBound, maxBound)
 instance (KnownNat n) => Environment (FrozenLake n) where
   type Observation (FrozenLake n) = (Finite n, Finite n)
   type Action (FrozenLake n) = Action
+  type Effect (FrozenLake n) = Identity
 
   isTerminal FrozenLake {map, position = position@(r, c)} =
     position == goalPosition
@@ -122,7 +124,7 @@ instance (KnownNat n) => Environment (FrozenLake n) where
 
   observe = position
 
-  step FrozenLake {map, position = (r, c)} f = do
+  step FrozenLake {map, position = (r, c)} _ f = do
     (action, a) <- f (r, c)
     let nextState = (FrozenLake {map, position = move (r, c) action})
     pure (action, nextState, a)
