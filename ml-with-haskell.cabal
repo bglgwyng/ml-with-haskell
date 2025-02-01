@@ -19,11 +19,14 @@ common base
   default-language: GHC2021
   default-extensions:
     DataKinds
+    TypeFamilies
+    FunctionalDependencies
     OverloadedRecordDot
     DuplicateRecordFields
     RecordWildCards
     NoStarIsType
     LambdaCase
+    MultiWayIf
   build-depends:
       base >= 4.18 && < 5
     , hasktorch >= 0.2 && < 0.3
@@ -31,8 +34,11 @@ common base
     , libtorch-ffi
     , optparse-applicative
     , vector
+    , vector-sized
     , random
     , containers
+    , finite-typelits
+    , lens
     
 common binary-base
   import: base
@@ -42,6 +48,7 @@ common binary-base
 library
   import: base
   exposed-modules:
+    RL.Environment
     RL.Environments.FrozenLake
     Torch.Typed.Extra
     CommonArgs

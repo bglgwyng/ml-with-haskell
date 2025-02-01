@@ -1,6 +1,9 @@
 module Torch.Typed.Extra where
 
+import Data.Finite (Finite)
 import GHC.TypeLits
+import Torch qualified as UT
+import Torch.Initializers qualified as UT
 import Torch.Typed
 
 mulScalar' ::
@@ -39,6 +42,18 @@ subScalar' ::
   Tensor device dtype shape
 subScalar' = flip subScalar
 
+divScalar' ::
+  forall
+    a
+    (shape :: [Nat])
+    (dtype :: DType)
+    (device :: (DeviceType, Nat)).
+  (Scalar a) =>
+  Tensor device dtype shape ->
+  a ->
+  Tensor device dtype shape
+divScalar' = flip divScalar
+
 expand' ::
   forall
     (shape' :: [Nat])
@@ -49,3 +64,21 @@ expand' ::
   Tensor device dtype shape ->
   Tensor device dtype shape'
 expand' = expand False
+
+data LinearSpec' inputFeatures outputFeatures dtype device = KamimingUniform {fanMode :: UT.FanMode, nonLinearity :: UT.NonLinearity}
+
+-- select ::
+--   forall (shape :: [Nat]) (dtype :: DType) (device :: (DeviceType, Nat)) n.
+--   (KnownNat n, KnownNat (Numel shape)) =>
+--   Finite (Numel shape) ->
+--   Int ->
+--   Tensor device dtype (n ': shape) ->
+--   Tensor device dtype shape
+-- select dim index = UnsafeMkTensor . UT.select (fromIntegral dim) index . toDynamic
+
+multinomial ::
+  forall n (length :: Nat) (dtype :: DType) (device :: (DeviceType, Nat)).
+  (KnownNat n) =>
+  Tensor device dtype '[length] ->
+  IO (Tensor device dtype '[n])
+multinomial t = UnsafeMkTensor <$> UT.multinomialIO' (toDynamic t) (natValI @n)

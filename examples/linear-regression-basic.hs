@@ -14,7 +14,7 @@ type N = 100
 
 main :: IO ()
 main = do
-  CommonArgs{learningRate, epoch, seed} <- getArgs
+  CommonArgs {learningRate, epoch, seed} <- getArgs
   mapM_ manual_seed_L seed
 
   let n = natValI @N

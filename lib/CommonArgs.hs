@@ -4,9 +4,9 @@ import Data.Word (Word64)
 import Options.Applicative
 
 data CommonArgs = CommonArgs
-  { learningRate :: Float
-  , epoch :: Int
-  , seed :: Maybe Word64
+  { learningRate :: Float,
+    epoch :: Int,
+    seed :: Maybe Word64
   }
 
 parseCommonArgs :: Parser CommonArgs
