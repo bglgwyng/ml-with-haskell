@@ -1,17 +1,23 @@
-module RL.Environments.FrozenLake (FrozenLake (..), Tile (..), Action (..), move, isTerminal, isReachable, goalPosition) where
+{-# LANGUAGE UndecidableInstances #-}
+
+module RL.Environments.FrozenLake (FrozenLake (..), Tile (..), Action (..), move, isReachable, goalPosition) where
 
 import Control.Monad (join)
 import Control.Monad.Identity (Identity)
+import Control.Monad.State
+import Control.Monad.Trans
+import Control.Monad.Trans.Maybe
 import Data.Finite
 import Data.Functor.Identity
 import Data.Graph
+import Data.Maybe (fromMaybe)
 import Data.Proxy
 import Data.Vector.Sized (Vector)
 import Data.Vector.Sized qualified as V
+import Debug.Trace
 import GHC.Generics (Generic)
 import GHC.TypeLits
-import RL.Environment hiding (Action)
-import RL.Environment qualified as E
+import RL.Agent
 import System.Random hiding (Finite)
 import System.Random.Stateful hiding (Finite)
 import Torch.Typed qualified as T
@@ -113,18 +119,6 @@ isReachable FrozenLake {map} =
 goalPosition :: (KnownNat n) => (Finite n, Finite n)
 goalPosition = (maxBound, maxBound)
 
-instance (KnownNat n) => Environment (FrozenLake n) where
-  type Observation (FrozenLake n) = (Finite n, Finite n)
-  type Action (FrozenLake n) = Action
-  type Effect (FrozenLake n) = Identity
-
-  isTerminal FrozenLake {map, position = position@(r, c)} =
-    position == goalPosition
-      || map `V.index` r `V.index` c == H
-
-  observe = position
-
-  step FrozenLake {map, position = (r, c)} _ f = do
-    (action, a) <- f (r, c)
-    let nextState = (FrozenLake {map, position = move (r, c) action})
-    pure (action, nextState, a)
+instance (KnownNat n, MonadState (FrozenLake n) m) => MonadAgent (Finite n, Finite n) Action m where
+  observe = gets position
+  act action = modify $ \state -> state {position = move state.position action}

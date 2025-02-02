@@ -27,6 +27,8 @@ common base
     NoStarIsType
     LambdaCase
     MultiWayIf
+    BlockArguments
+    RecursiveDo
   build-depends:
       base >= 4.18 && < 5
     , hasktorch >= 0.2 && < 0.3
@@ -39,6 +41,9 @@ common base
     , containers
     , finite-typelits
     , lens
+    , transformers
+    , tardis
+    , rev-state
     
 common binary-base
   import: base
@@ -48,7 +53,10 @@ common binary-base
 library
   import: base
   exposed-modules:
-    RL.Environment
+    Control.Monad.RevState.Instances
+    Control.Monad.State.Instances
+    Control.Monad.Tardis.Instances
+    RL.Agent
     RL.Environments.FrozenLake
     Torch.Typed.Extra
     CommonArgs

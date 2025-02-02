@@ -11,3 +11,5 @@ result*
 
 .direnv/
 dist-newstyle/
+
+tmp/

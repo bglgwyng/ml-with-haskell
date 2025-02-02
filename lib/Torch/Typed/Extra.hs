@@ -67,15 +67,6 @@ expand' = expand False
 
 data LinearSpec' inputFeatures outputFeatures dtype device = KamimingUniform {fanMode :: UT.FanMode, nonLinearity :: UT.NonLinearity}
 
--- select ::
---   forall (shape :: [Nat]) (dtype :: DType) (device :: (DeviceType, Nat)) n.
---   (KnownNat n, KnownNat (Numel shape)) =>
---   Finite (Numel shape) ->
---   Int ->
---   Tensor device dtype (n ': shape) ->
---   Tensor device dtype shape
--- select dim index = UnsafeMkTensor . UT.select (fromIntegral dim) index . toDynamic
-
 multinomial ::
   forall n (length :: Nat) (dtype :: DType) (device :: (DeviceType, Nat)).
   (KnownNat n) =>
