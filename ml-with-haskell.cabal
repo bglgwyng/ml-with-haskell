@@ -44,6 +44,15 @@ common base
     , transformers
     , tardis
     , rev-state
+    , reflex
+    , reflex-vty
+    , witherable
+    , vty
+    , text
+    , patch
+    , these
+    , time
+    , unbounded-delays
     
 common binary-base
   import: base
@@ -58,8 +67,14 @@ library
     Control.Monad.Tardis.Instances
     RL.Agent
     RL.Environments.FrozenLake
+    RL.Environments.Snake
+    RL.Agents.WASD
     Torch.Typed.Extra
     CommonArgs
+    Reflex.Vty.Utils
+    Reflex.Utils
+    Reflex.Random
+    Grid
   hs-source-dirs: lib
 
 executable linear-regression-basic
@@ -80,6 +95,16 @@ executable linear-regression-optimizer
 executable frozen-lake-rl
   import: binary-base
   main-is: frozen-lake-rl.hs
+  hs-source-dirs: examples
+
+executable snake-rl
+  import: binary-base
+  main-is: snake-rl.hs
+  hs-source-dirs: examples
+
+executable playground
+  import: binary-base
+  main-is: playground.hs
   hs-source-dirs: examples
 
 test-suite spec

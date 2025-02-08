@@ -105,15 +105,6 @@ data Model (n :: Nat) = Model
   }
   deriving (Generic)
 
-instance
-  (KnownNat inputFeatures, KnownNat outputFeatures, T.KnownDType dtype, T.KnownDevice device) =>
-  T.Randomizable (T.LinearSpec' inputFeatures outputFeatures dtype device) (T.Linear inputFeatures outputFeatures dtype device)
-  where
-  sample (T.KamimingUniform {..}) = do
-    weight <- T.makeIndependent . T.UnsafeMkTensor . UT.toDevice (T.deviceVal @device) =<< UT.kaimingUniform fanMode nonLinearity [T.natValI @outputFeatures, T.natValI @inputFeatures]
-    bias <- T.makeIndependent (T.zeros @'[outputFeatures] @dtype @device)
-    pure $ T.Linear {..}
-
 data ModelSpec (n :: Nat) = ModelSpec
 
 instance (KnownNat (n * n), KnownNat (n * n * 2)) => T.Randomizable (ModelSpec n) (Model n) where
