@@ -35,20 +35,17 @@ import Reflex
 import Reflex.Network
 import Reflex.Utils
 import Reflex.Vty
-import System.Exit (exitSuccess)
 import System.IO (hPrint, stderr)
 import System.Random hiding (Finite)
 import Torch qualified as UT
-import Torch.Data.CsvDatastream (CsvDatastream' (batchSize))
 import Torch.HList
 import Torch.Initializers qualified as UT
 import Torch.Internal.Managed.Type.Context
 import Torch.Optim (foldLoop)
 import Torch.Typed qualified as T
 import Torch.Typed.Extra qualified as T
-import Torch.Typed.VLTensor qualified as VL
 
-type Device = '(T.CUDA, 0)
+type Device = '(T.CPU, 0)
 
 type N = 8
 
@@ -66,10 +63,11 @@ main = do
 
   model0 <- case loadPath of
     Just path -> do
-      model <- T.sample (ModelSpec @N)
+      model <- T.sample (ModelSpec @N @Device)
       params <- T.load @(T.Tensors (Model N Device)) path >>= hmapM' T.MakeIndependent
-      pure $ T.replaceParameters model params
-    Nothing -> T.sample (ModelSpec @N)
+      -- TODO: T.toDevice 빼도 되도록
+      pure $ T.replaceParameters model (T.toDevice @Device params)
+    Nothing -> T.sample (ModelSpec @N @Device)
 
   let optim0 = T.mkAdam 0 0.9 0.999 (T.flattenParameters model0)
 
@@ -92,7 +90,7 @@ main = do
 
           unless obs.isAlive $ sendPast 0 *> mzero
 
-          [(action, logProb)] <- liftIO $ (V.toList <$> sampleAction @1 model [obs])
+          [(action, logProb)] <- liftIO $ V.toList <$> sampleAction @1 model [obs]
           liftIO $ writeChan chAction action
 
           modifyBackwards (* gamma)
@@ -166,7 +164,7 @@ main = do
 
 --  <> (b $> ())
 
-data Model (n :: Nat) (device :: (T.DeviceType, Nat)) = Model
+data Model (n :: Nat) device = Model
   { layer1 :: T.Linear (3 * (n * n)) (2 * (n * n)) T.Float device,
     layer2 :: T.Linear (2 * (n * n)) (n * n) T.Float device,
     layer3 :: T.Linear (n * n) 4 T.Float device
@@ -190,6 +188,7 @@ sampleAction ::
     batchSize ~ 1,
     KnownNat n,
     KnownNat (n * n),
+    KnownNat (2 * (n * n)),
     KnownNat (3 * (n * n)),
     T.KnownDevice device,
     T.StandardFloatingPointDTypeValidation device T.Float

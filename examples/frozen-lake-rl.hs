@@ -29,7 +29,7 @@ import Torch.Optim (foldLoop)
 import Torch.Typed qualified as T
 import Torch.Typed.Extra qualified as T
 
-type Device = '(T.CUDA, 0)
+type Device = '(T.CPU, 0)
 
 type N = 8
 
