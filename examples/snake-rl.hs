@@ -35,7 +35,8 @@ import Reflex
 import Reflex.Network
 import Reflex.Utils
 import Reflex.Vty
-import System.IO (hPrint, stderr)
+import Stats.MovingWindowAverage qualified as MWA
+import System.IO (hPrint, hPutStrLn, stderr)
 import System.Random hiding (Finite)
 import Torch qualified as UT
 import Torch.HList
@@ -73,7 +74,8 @@ main = do
 
   void . forkIO $ do
     putStrLn "Training..."
-    (model, _, _) <- foldLoop (model0, optim0, 0) epoch $ \(model, optim, baseline) i -> do
+
+    (model, _, _) <- foldLoop (model0, optim0, MWA.empty 100) epoch $ \(model, optim, mwReward) i -> do
       let gamma = 0.99 :: Float
 
       chAction <- newChan
@@ -81,8 +83,8 @@ main = do
 
       chObservation <- readChan chResp
 
-      (episode, (totalScore, _)) <- fmap (first (($ mempty) . appEndo))
-        . flip runTardisT (0 :: Float, 0 :: Int)
+      (episode, (_, (_, totalReward))) <- fmap (first (($ mempty) . appEndo))
+        . flip runTardisT (0 :: Float, (0 :: Int, 0 :: Int))
         . execWriterT
         . runMaybeT
         $ for_ [0 ..] \_ -> do
@@ -97,27 +99,33 @@ main = do
           reward <- getFuture
           if obs.hasEaten
             then do
-              modifyBackwards (+ 1)
-              sendFuture 0
+              sendPast 1
+              modifyForwards (const 0 *** (+ 1))
             else do
-              noEatingCount <- getPast
+              noEatingCount <- getsPast fst
               when (noEatingCount >= n * n) mzero
-              modifyForwards (+ 1)
+              modifyForwards (first (+ 1))
 
           lift $ tell $ Endo ((action, reward, logProb) :)
           pure reward
 
-      let (rewards, logProbs) = unzip $ (\(_, reward, logProb) -> (max 0 (reward - baseline), logProb)) <$> episode
-          logProbs' = UT.stack (UT.Dim 0) (T.toDynamic <$> logProbs)
-          rewards' = UT.toDevice (UT.device logProbs') $ UT.asTensor rewards
+      let baseline = MWA.average mwReward
+      let mwReward' = applyAlways (MWA.Enqueue (fromIntegral totalReward)) mwReward
 
-      let loss = T.UnsafeMkTensor $ UT.sumAll $ rewards' * logProbs' :: T.Tensor Device T.Float '[]
-      let baseline' = 0.99 * baseline + 0.01 * totalScore
+      liftIO $ hPutStrLn stderr $ "Epoch: " <> show i <> " Reward: " <> show totalReward <> " Baseline: " <> show baseline
 
-      liftIO $ hPrint stderr (i, totalScore, baseline')
-      (model', optim') <- T.runStep model optim (-loss) (realToFrac learningRate)
+      if isNaN baseline || totalReward > floor baseline
+        then do
+          let (rewards, logProbs) = unzip $ (\(_, reward, logProb) -> (reward, logProb)) <$> episode
+              logProbs' = UT.stack (UT.Dim 0) (T.toDynamic <$> logProbs)
+              rewards' = UT.toDevice (UT.device logProbs') $ UT.asTensor rewards
 
-      pure (model', optim', baseline')
+          let loss = T.UnsafeMkTensor $ UT.sumAll $ rewards' * logProbs' :: T.Tensor Device T.Float '[]
+
+          (model', optim') <- T.runStep model optim (-loss) (realToFrac learningRate)
+
+          pure (model', optim', mwReward')
+        else pure (model, optim, mwReward')
 
     mapM_ (T.save $ hmap' T.ToDependent $ T.flattenParameters model) savePath
 
@@ -169,19 +177,21 @@ main = do
 --  <> (b $> ())
 
 data Model (n :: Nat) device = Model
-  { layer1 :: T.Linear (3 * (n * n)) (2 * (n * n)) T.Float device,
-    layer2 :: T.Linear (2 * (n * n)) (n * n) T.Float device,
-    layer3 :: T.Linear (n * n) 4 T.Float device
+  { layer1 :: T.Linear (3 * (n * n)) (4 * (n * n)) T.Float device,
+    layer2 :: T.Linear (4 * (n * n)) (2 * (n * n)) T.Float device,
+    layer3 :: T.Linear (2 * (n * n)) (n * n) T.Float device,
+    layer4 :: T.Linear (n * n) 4 T.Float device
   }
   deriving (Generic)
 
 data ModelSpec (n :: Nat) (device :: (T.DeviceType, Nat)) = ModelSpec
 
-instance (T.KnownDevice device, KnownNat (n * n), KnownNat (2 * (n * n)), KnownNat (3 * (n * n))) => T.Randomizable (ModelSpec n device) (Model n device) where
+instance (T.KnownDevice device, KnownNat (n * n), KnownNat (2 * (n * n)), KnownNat (3 * (n * n)), KnownNat (4 * (n * n))) => T.Randomizable (ModelSpec n device) (Model n device) where
   sample _ = do
-    layer1 <- T.sample (T.KamimingUniform UT.FanIn UT.Relu :: T.LinearSpec' (3 * (n * n)) (2 * (n * n)) T.Float device)
-    layer2 <- T.sample (T.KamimingUniform UT.FanIn UT.Relu :: T.LinearSpec' (2 * (n * n)) (n * n) T.Float device)
-    layer3 <- T.sample (T.KamimingUniform UT.FanIn UT.Relu :: T.LinearSpec' (n * n) 4 T.Float device)
+    layer1 <- T.sample (T.KamimingUniform UT.FanIn UT.Relu :: T.LinearSpec' (3 * (n * n)) (4 * (n * n)) T.Float device)
+    layer2 <- T.sample (T.KamimingUniform UT.FanIn UT.Relu :: T.LinearSpec' (4 * (n * n)) (2 * (n * n)) T.Float device)
+    layer3 <- T.sample (T.KamimingUniform UT.FanIn UT.Relu :: T.LinearSpec' (2 * (n * n)) (n * n) T.Float device)
+    layer4 <- T.sample (T.KamimingUniform UT.FanIn UT.Relu :: T.LinearSpec' (n * n) 4 T.Float device)
     pure Model {..}
 
 instance T.Parameterized (Model n device)
@@ -207,6 +217,8 @@ sampleAction Model {..} obss = do
           & T.linearForward' layer2
           & T.relu
           & T.linearForward' layer3
+          & T.relu
+          & T.linearForward' layer4
           & T.softmax @1
   for (fromJust $ V.fromList @batchSize $ finites @batchSize) $ \i -> do
     let probs = T.selectIdx @0 probss i

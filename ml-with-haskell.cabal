@@ -75,6 +75,7 @@ library
     Reflex.Utils
     Reflex.Random
     Grid
+    Stats.MovingWindowAverage
   hs-source-dirs: lib
 
 executable linear-regression-basic
