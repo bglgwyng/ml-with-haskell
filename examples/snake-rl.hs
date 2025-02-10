@@ -36,7 +36,7 @@ import Reflex.Network
 import Reflex.Utils
 import Reflex.Vty
 import Stats.MovingWindowAverage qualified as MWA
-import System.IO (hPrint, hPutStrLn, stderr)
+import System.IO (hPutStrLn, stderr)
 import System.Random hiding (Finite)
 import Torch qualified as UT
 import Torch.HList
@@ -59,6 +59,7 @@ main = do
   mapM_ manual_seed_L seed
   g <- maybe newStdGen (pure . mkStdGen . fromIntegral) seed
 
+  chTrainingDone :: Chan () <- newChan
   chReq :: Chan (Chan Grid.Direction) <- newChan
   chResp :: Chan (Chan (Maybe (S.Observation N))) <- newChan
 
@@ -72,10 +73,12 @@ main = do
 
   let optim0 = T.mkAdam 0 0.9 0.999 (T.flattenParameters model0)
 
+  modelToSave <- newMVar model0
+
   void . forkIO $ do
     putStrLn "Training..."
 
-    (model, _, _) <- foldLoop (model0, optim0, MWA.empty 100) epoch $ \(model, optim, mwReward) i -> do
+    void $ foldLoop (model0, optim0, MWA.empty 100) epoch $ \(model, optim, mwReward) i -> do
       let gamma = 0.99 :: Float
 
       chAction <- newChan
@@ -124,10 +127,11 @@ main = do
 
           (model', optim') <- T.runStep model optim (-loss) (realToFrac learningRate)
 
+          modifyMVar_ modelToSave $ \_ -> pure model'
+
           pure (model', optim', mwReward')
         else pure (model, optim, mwReward')
-
-    mapM_ (T.save $ hmap' T.ToDependent $ T.flattenParameters model) savePath
+    writeChan chTrainingDone ()
 
   mainWidget $ initManager_ $ mdo
     dChAction <- holdDyn Nothing (leftmost [eChAction `ffor` Just, eDied $> Nothing])
@@ -171,9 +175,13 @@ main = do
           V.EvKey (V.KChar 'c') [V.MCtrl] -> Just ()
           _ -> Nothing
 
-    pure $ eCtrlC $> ()
+    eTrainingDone <- newEventFromChan chTrainingDone
 
---  <> (b $> ())
+    pure $ (eCtrlC $> ()) <> eTrainingDone
+  for_ savePath $ \path -> do
+    model <- readMVar modelToSave
+    T.save (hmap' T.ToDependent $ T.flattenParameters model) path
+    putStrLn $ "Saved to " <> path
 
 data Model (n :: Nat) device = Model
   { layer1 :: T.Linear (3 * (n * n)) (4 * (n * n)) T.Float device,
