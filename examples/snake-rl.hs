@@ -130,9 +130,8 @@ main = do
     mapM_ (T.save $ hmap' T.ToDependent $ T.flattenParameters model) savePath
 
   mainWidget $ initManager_ $ mdo
-    (eChAction, triggerChAction) <- newTriggerEvent
-    dChAction <- holdDyn Nothing (leftmost [eChAction, eDied $> Nothing])
-    void . liftIO . forkIO . forever $ readChan chReq >>= triggerChAction . Just
+    dChAction <- holdDyn Nothing (leftmost [eChAction `ffor` Just, eDied $> Nothing])
+    eChAction <- newEventFromChan chReq
 
     eDied <-
       tile (fixed $ pure $ n + 2) . row . tile (fixed $ pure $ n + 2) $
