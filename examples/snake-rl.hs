@@ -55,7 +55,7 @@ n = T.natValI @N
 
 main :: IO ()
 main = do
-  CommonArgs {learningRate, epoch, seed, loadPath, savePath} <- getArgs
+  CommonArgs {learningRate, epoch, temperature, seed, loadPath, savePath} <- getArgs
   mapM_ manual_seed_L seed
   g <- maybe newStdGen (pure . mkStdGen . fromIntegral) seed
 
@@ -95,7 +95,7 @@ main = do
 
           unless obs.isAlive $ sendPast 0 *> mzero
 
-          [(action, logProb)] <- liftIO $ V.toList <$> sampleAction @1 model [obs]
+          [(action, logProb)] <- liftIO $ V.toList <$> sampleAction @1 model temperature [obs]
           liftIO $ writeChan chAction action
 
           modifyBackwards (* gamma)
@@ -215,9 +215,10 @@ sampleAction ::
     T.StandardFloatingPointDTypeValidation device T.Float
   ) =>
   Model n device ->
+  Float ->
   [Observation n] ->
   IO (Vector batchSize (Grid.Direction, T.Tensor device T.Float '[]))
-sampleAction Model {..} obss = do
+sampleAction Model {..} temperature obss = do
   let probss :: T.Tensor device T.Float '[batchSize, 4] =
         T.linearForward' layer1 (T.reshape @'[batchSize, 3 * (n * n)] inputs)
           & T.relu
@@ -226,7 +227,7 @@ sampleAction Model {..} obss = do
           & T.linearForward' layer3
           & T.relu
           & T.linearForward' layer4
-          & T.softmax @1
+          & T.softmax @1 . (/ realToFrac temperature)
   for (fromJust $ V.fromList @batchSize $ finites @batchSize) $ \i -> do
     let probs = T.selectIdx @0 probss i
     (toEnum &&& (T.log . T.selectIdx @0 probs . fromIntegral)) . T.toInt <$> T.multinomial @1 probs
