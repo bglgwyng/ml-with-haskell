@@ -140,12 +140,16 @@ main = do
                     readChan chAction >>= flip triggerAction (pure ())
                 pure (killThread thread)
 
-              eObs <- delay' bDelay =<< snakeGame @N eAction
+              eObs <- delay' bDelay =<< snakeGame @N eAction dIsVisible
               let eDied = ffilter isNothing eObs $> ()
               performEvent_ $ eObs `ffor` (liftIO . writeChan chObservation)
               pure eDied
 
     eInput <- input
+
+    dIsVisible <- toggle True $ fforMaybe eInput $ \case
+      V.EvKey (V.KChar 'd') [] -> Just ()
+      _ -> Nothing
 
     -- TODO: delay보단 speed로
     bDelay <- accumB (\x y -> max 0 $ x + y) 0 $ leftmost [eSlowDown $> 0.01, eSpeedUp $> -0.01]

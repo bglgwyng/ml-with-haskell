@@ -17,17 +17,15 @@ import Data.Patch
 import Data.Proxy
 import Data.Set qualified as Set
 import Data.These
-import Debug.Trace (traceShowM)
 import GHC.TypeNats
 import Graphics.Vty hiding (Event)
 import Grid
 import RL.Agent
 import Reflex
+import Reflex.Network (networkView)
 import Reflex.Random
 import Reflex.Vty
-import Reflex.Vty qualified as Grid
 import Reflex.Vty.Utils
-import System.IO
 import System.Random hiding (Finite)
 
 data Snake = Snake
@@ -87,8 +85,9 @@ instance (KnownNat n, MonadReader (Chan (Observation n), Chan Action) m, MonadIO
     (_, channel) <- ask
     liftIO $ writeChan channel action
 
-snakeGame :: forall n t m. (KnownNat n, VtyExample t m) => Event t Grid.Direction -> m (Event t (Maybe (Observation n)))
-snakeGame eAction = do
+-- TODO: `dIsVisible` 빼기
+snakeGame :: forall n t m. (KnownNat n, VtyExample t m) => Event t Grid.Direction -> Dynamic t Bool -> m (Event t (Maybe (Observation n)))
+snakeGame eAction dIsVisible = do
   foodGen <- liftIO newStdGen
   mdo
     let eTick = eAction
@@ -101,9 +100,6 @@ snakeGame eAction = do
                 pure action
             )
             eAction
-
-    -- performEvent_ $ eTick `ffor` (liftIO . hPrint stderr . ("###",) . (show))
-    -- performEvent_ $ eProceed `ffor` (liftIO . hPrint stderr . ("###",) . (show))
 
     dSnake <- holdDyn initialSnake eMoveSnake
     bFood <-
@@ -143,16 +139,20 @@ snakeGame eAction = do
               )
             $ updated dSnake
 
-    col . grout (fixed (constDyn height)) . row . grout (fixed (constDyn width)) $ do
-      fillBoard
-        ( \(x, y) -> do
-            snake <- current dSnake
-            food <- bFood
-            if
-              | (x, y) `elem` snakeBody snake -> pure (withForeColor defAttr yellow, 'O')
-              | food == (x, y) -> pure (withForeColor defAttr brightGreen, '@')
-              | otherwise -> pure (defAttr, ' ')
-        )
+    _ <-
+      networkView $
+        dIsVisible `ffor` \shouldDisplay -> do
+          when shouldDisplay $ do
+            col . grout (fixed (constDyn height)) . row . grout (fixed (constDyn width)) $ do
+              fillBoard
+                ( \(x, y) -> do
+                    snake <- current dSnake
+                    food <- bFood
+                    if
+                      | (x, y) `elem` snakeBody snake -> pure (withForeColor defAttr yellow, 'O')
+                      | food == (x, y) -> pure (withForeColor defAttr brightGreen, '@')
+                      | otherwise -> pure (defAttr, ' ')
+                )
 
     ePostBuild <- getPostBuild
     let eSnake = leftmost [updated dSnake, tag (current dSnake) ePostBuild]
