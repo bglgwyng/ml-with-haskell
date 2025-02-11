@@ -3,18 +3,11 @@
 module RL.Environments.FrozenLake (FrozenLake (..), Tile (..), Action (..), move, isReachable, goalPosition) where
 
 import Control.Monad (join)
-import Control.Monad.Identity (Identity)
 import Control.Monad.State
-import Control.Monad.Trans
-import Control.Monad.Trans.Maybe
 import Data.Finite
-import Data.Functor.Identity
 import Data.Graph
-import Data.Maybe (fromMaybe)
-import Data.Proxy
 import Data.Vector.Sized (Vector)
 import Data.Vector.Sized qualified as V
-import Debug.Trace
 import GHC.Generics (Generic)
 import GHC.TypeLits
 import RL.Agent

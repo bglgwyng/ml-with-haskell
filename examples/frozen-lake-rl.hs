@@ -29,7 +29,7 @@ import Torch.Optim (foldLoop)
 import Torch.Typed qualified as T
 import Torch.Typed.Extra qualified as T
 
-type Device = '(T.CUDA, 0)
+type Device = '(T.CPU, 0)
 
 type N = 8
 
@@ -104,15 +104,6 @@ data Model (n :: Nat) = Model
     layer3 :: T.Linear (n * n) 4 T.Float Device
   }
   deriving (Generic)
-
-instance
-  (KnownNat inputFeatures, KnownNat outputFeatures, T.KnownDType dtype, T.KnownDevice device) =>
-  T.Randomizable (T.LinearSpec' inputFeatures outputFeatures dtype device) (T.Linear inputFeatures outputFeatures dtype device)
-  where
-  sample (T.KamimingUniform {..}) = do
-    weight <- T.makeIndependent . T.UnsafeMkTensor . UT.toDevice (T.deviceVal @device) =<< UT.kaimingUniform fanMode nonLinearity [T.natValI @outputFeatures, T.natValI @inputFeatures]
-    bias <- T.makeIndependent (T.zeros @'[outputFeatures] @dtype @device)
-    pure $ T.Linear {..}
 
 data ModelSpec (n :: Nat) = ModelSpec
 

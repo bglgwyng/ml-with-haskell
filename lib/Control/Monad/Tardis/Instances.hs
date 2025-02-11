@@ -4,12 +4,10 @@ module Control.Monad.Tardis.Instances where
 
 import Control.Monad.Fix
 import Control.Monad.Tardis
-import Control.Monad.Tardis.Class
 import Control.Monad.Trans
 import Control.Monad.Trans.Maybe
 import Control.Monad.Trans.Tardis (TardisT (..))
 import Control.Monad.Trans.Writer
-import System.IO (fixIO)
 
 instance (MonadTardis bw fw m) => MonadTardis bw fw (MaybeT m) where
   getPast = lift getPast
