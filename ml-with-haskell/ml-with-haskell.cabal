@@ -68,7 +68,6 @@ library
     RL.Agent
     RL.Environments.FrozenLake
     RL.Environments.Snake
-    RL.Agents.WASD
     Torch.Typed.Extra
     CommonArgs
     Reflex.Vty.Utils

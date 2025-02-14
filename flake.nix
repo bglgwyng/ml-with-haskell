@@ -45,7 +45,7 @@
             };
           };
           packages.default =
-            haskellPackages.callCabal2nix "ml-with-haskell" ./. { };
+            haskellPackages.callCabal2nix "ml-with-haskell" ./ml-with-haskell { };
           devShells.default = haskellPackages.shellFor {
             packages = ps: [ packages.default ];
             nativeBuildInputs = with pkgs; [
