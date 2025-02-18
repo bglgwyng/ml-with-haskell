@@ -53,6 +53,7 @@ common base
     , these
     , time
     , unbounded-delays
+    , free-category
     
 common binary-base
   import: base

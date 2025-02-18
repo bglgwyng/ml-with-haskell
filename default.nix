@@ -24,9 +24,12 @@ with pkgs; with commonLib;
 
 let
 
-  haskellPackages = recRecurseIntoAttrs
-    # the Haskell.nix package set, reduced to local packages.
-    (selectProjectPackages hasktorchSkeletonHaskellPackages);
+  haskellPackages =
+    (recRecurseIntoAttrs
+      # the Haskell.nix package set, reduced to local packages.
+      (selectProjectPackages hasktorchSkeletonHaskellPackages)).override {
+      free-algebras = haskell.lib.doJailbreak super.free-algebras;
+    };
 
   libs = collectComponents' "library" haskellPackages;
   exes = collectComponents' "exes" haskellPackages;

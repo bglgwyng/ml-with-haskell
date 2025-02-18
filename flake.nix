@@ -39,11 +39,14 @@
               inherit system;
               # Set to false to disable CUDA support
               config.cudaSupport = true;
+              config.allowBroken = true;
               overlays = [
                 hasktorch.overlays.default
               ];
             };
           };
+          packages.haskellPackages = haskellPackages;
+          packages.free-algebras = pkgs.haskell.lib.doJailbreak haskellPackages.free-algebras;
           packages.default =
             haskellPackages.callCabal2nix "ml-with-haskell" ./ml-with-haskell { };
           devShells.default = haskellPackages.shellFor {
