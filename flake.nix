@@ -45,12 +45,14 @@
               ];
             };
           };
-          packages.haskellPackages = haskellPackages;
-          packages.free-algebras = pkgs.haskell.lib.doJailbreak haskellPackages.free-algebras;
-          packages.default =
-            haskellPackages.callCabal2nix "ml-with-haskell" ./ml-with-haskell { };
-          devShells.default = haskellPackages.shellFor {
-            packages = ps: [ packages.default ];
+          packages.haskellPackages = haskellPackages.extend (hself: hsuper: {
+            free-algebras = pkgs.haskell.lib.doJailbreak hsuper.free-algebras;
+            ml-with-haskell = hself.callCabal2nix "ml-with-haskell" ./ml-with-haskell { };
+          });
+          packages.free-algebras = packages.haskellPackages.free-algebras;
+          packages.default = packages.haskellPackages.ml-with-haskell;
+          devShells.default = packages.haskellPackages.shellFor {
+            packages = ps: [ ps.ml-with-haskell ];
             nativeBuildInputs = with pkgs; [
               cabal-install
               haskell-language-server

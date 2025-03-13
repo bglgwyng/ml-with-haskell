@@ -1,43 +1,13 @@
-import Control.Monad.IO.Class
-import Control.Monad.Tardis
-import Data.Foldable (for_)
-import Data.Traversable (for)
-import GHC.IO (unsafePerformIO)
+import Control.Arrow
+import Control.Arrow.TorchArrow
+import Torch hiding (add, mul)
 
-type Obs = Int
-
-type Action = Int
-
-observe :: (MonadTardis a Obs m) => m Obs
-observe = getPast
-
-chooseAction :: (MonadTardis a b m) => Obs -> m (Action, Float)
-chooseAction = undefined
+op :: TorchArrow (Tensor, Tensor) Tensor
+op = proc (x1, x2) -> do
+  y1 <- add -< (x1, asTensor [2 :: Float])
+  y2 <- mul -< (x2, asTensor [-3 :: Float])
+  returnA <<< add -< (y1, y2)
 
 main :: IO ()
-main = do
-  x <-
-    flip runTardisT (0, 0) $ mdo
-      for [(1 :: Int) .. 10] $ \i -> do
-        result <- getFuture
-        -- let result = 0
-        -- obs <- observe
-        -- (action, prob) <- chooseAction obs
-
-        -- sendFuture (2)
-        -- getPast >>= sendFuture . (+ 2)
-
-        -- sendPast . (+ 3) =<< getFuture
-        -- sendPast 10
-        y <- getFuture
-        -- pure $ seq (unsafePerformIO $ print "!11") $ Just ()
-        -- sendPast (y + 20)
-        modifyBackwards (+ 1)
-        -- liftIO $ print 1
-        -- getPast
-        -- sendPast 1
-        pure result
-  -- pure 0
-
-  print x
-  putStrLn "Hello, World!"
+main =
+  print =<< runTorchArrow op (asTensor [1 :: Float], asTensor [2 :: Float])

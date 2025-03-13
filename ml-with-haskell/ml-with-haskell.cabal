@@ -29,6 +29,7 @@ common base
     MultiWayIf
     BlockArguments
     RecursiveDo
+    Arrows
   build-depends:
       base >= 4.18 && < 5
     , hasktorch >= 0.2 && < 0.3
@@ -62,6 +63,7 @@ common binary-base
 
 library
   import: base
+  hs-source-dirs: lib
   exposed-modules:
     Control.Monad.RevState.Instances
     Control.Monad.State.Instances
@@ -76,8 +78,10 @@ library
     Reflex.Random
     Grid
     Stats.MovingWindowAverage
-  hs-source-dirs: lib
-
+    Control.Arrow.TorchArrow
+  other-modules:
+    Paths_ml_with_haskell
+    
 executable linear-regression-basic
   import: binary-base
   main-is: linear-regression-basic.hs
